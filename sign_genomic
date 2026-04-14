@@ -1,47 +1,16 @@
-"""
-genomic_sign.py
-Partie 2 : Signature génomique (CGR)
-
-Ce script prend une séquence ADN (string) et calcule :
-- la matrice de fréquence des k-mers (CGR)
-- l'affichage de la matrice
-
-La lecture du fichier .gbk est faite dans un autre script.
-"""
+# genomic_sign.py
 
 import numpy as np
 import matplotlib.pyplot as plt
 from itertools import product
 
-
-# =============================================================================
-# CGR — COORDONNÉES
-# =============================================================================
-CORNERS = {
-    'A': (0, 1),
-    'T': (1, 1),
-    'G': (1, 0),
-    'C': (0, 0)
-}
+# IMPORT DU SCRIPT 1
+from chaos_game import read_sequence_from_gbk, compute_cgr
 
 
-def generate_cgr_coordinates(sequence):
-    x, y = 0.5, 0.5
-    coords = []
-
-    for nuc in sequence:
-        if nuc in CORNERS:
-            cx, cy = CORNERS[nuc]
-            x = (x + cx) / 2
-            y = (y + cy) / 2
-            coords.append((x, y))
-
-    return coords
-
-
-# =============================================================================
-# MATRICE k-mers
-# =============================================================================
+# =========================
+# MATRICE SIGNATURE
+# =========================
 def generate_signature_matrix(sequence, k):
 
     if k < 1 or k > 4:
@@ -50,7 +19,7 @@ def generate_signature_matrix(sequence, k):
     n_bins = 2 ** k
     matrix = np.zeros((n_bins, n_bins))
 
-    coords = generate_cgr_coordinates(sequence)
+    coords = compute_cgr(sequence)
 
     for i in range(k - 1, len(coords)):
         x, y = coords[i]
@@ -60,16 +29,16 @@ def generate_signature_matrix(sequence, k):
 
         matrix[row, col] += 1
 
-    # normalisation → fréquences
+    # normalisation
     if matrix.sum() > 0:
         matrix /= matrix.sum()
 
     return matrix
 
 
-# =============================================================================
+# =========================
 # LABELS k-mers
-# =============================================================================
+# =========================
 def get_kmer_labels(k):
 
     bases = ['C', 'A', 'G', 'T']
@@ -81,7 +50,7 @@ def get_kmer_labels(k):
     for kmer in kmers:
         x, y = 0.5, 0.5
         for nuc in kmer:
-            cx, cy = CORNERS[nuc]
+            cx, cy = {'A':(0,1),'T':(1,1),'G':(1,0),'C':(0,0)}[nuc]
             x = (x + cx) / 2
             y = (y + cy) / 2
 
@@ -93,9 +62,9 @@ def get_kmer_labels(k):
     return labels
 
 
-# =============================================================================
+# =========================
 # AFFICHAGE
-# =============================================================================
+# =========================
 def plot_matrix(matrix, k, title="Signature génomique"):
 
     labels = get_kmer_labels(k)
@@ -124,3 +93,20 @@ def plot_matrix(matrix, k, title="Signature génomique"):
     plt.tight_layout()
     plt.show()
 
+
+# =========================
+# MAIN (test)
+# =========================
+if __name__ == "__main__":
+
+    gbk_file = "herpes.gbk"   # à adapter
+    k = 2
+
+    print("Lecture...")
+    seq = read_sequence_from_gbk(gbk_file)
+
+    print("Calcul matrice...")
+    matrix = generate_signature_matrix(seq, k)
+
+    print("Affichage...")
+    plot_matrix(matrix, k)
