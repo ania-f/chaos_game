@@ -1,0 +1,126 @@
+"""
+genomic_sign.py
+Partie 2 : Signature génomique (CGR)
+
+Ce script prend une séquence ADN (string) et calcule :
+- la matrice de fréquence des k-mers (CGR)
+- l'affichage de la matrice
+
+La lecture du fichier .gbk est faite dans un autre script.
+"""
+
+import numpy as np
+import matplotlib.pyplot as plt
+from itertools import product
+
+
+# =============================================================================
+# CGR — COORDONNÉES
+# =============================================================================
+CORNERS = {
+    'A': (0, 1),
+    'T': (1, 1),
+    'G': (1, 0),
+    'C': (0, 0)
+}
+
+
+def generate_cgr_coordinates(sequence):
+    x, y = 0.5, 0.5
+    coords = []
+
+    for nuc in sequence:
+        if nuc in CORNERS:
+            cx, cy = CORNERS[nuc]
+            x = (x + cx) / 2
+            y = (y + cy) / 2
+            coords.append((x, y))
+
+    return coords
+
+
+# =============================================================================
+# MATRICE k-mers
+# =============================================================================
+def generate_signature_matrix(sequence, k):
+
+    if k < 1 or k > 4:
+        raise ValueError("k doit être entre 1 et 4")
+
+    n_bins = 2 ** k
+    matrix = np.zeros((n_bins, n_bins))
+
+    coords = generate_cgr_coordinates(sequence)
+
+    for i in range(k - 1, len(coords)):
+        x, y = coords[i]
+
+        col = min(int(x * n_bins), n_bins - 1)
+        row = min(int(y * n_bins), n_bins - 1)
+
+        matrix[row, col] += 1
+
+    # normalisation → fréquences
+    if matrix.sum() > 0:
+        matrix /= matrix.sum()
+
+    return matrix
+
+
+# =============================================================================
+# LABELS k-mers
+# =============================================================================
+def get_kmer_labels(k):
+
+    bases = ['C', 'A', 'G', 'T']
+    kmers = [''.join(p) for p in product(bases, repeat=k)]
+
+    n_bins = 2 ** k
+    labels = np.empty((n_bins, n_bins), dtype=object)
+
+    for kmer in kmers:
+        x, y = 0.5, 0.5
+        for nuc in kmer:
+            cx, cy = CORNERS[nuc]
+            x = (x + cx) / 2
+            y = (y + cy) / 2
+
+        col = min(int(x * n_bins), n_bins - 1)
+        row = min(int(y * n_bins), n_bins - 1)
+
+        labels[row, col] = kmer
+
+    return labels
+
+
+# =============================================================================
+# AFFICHAGE
+# =============================================================================
+def plot_matrix(matrix, k, title="Signature génomique"):
+
+    labels = get_kmer_labels(k)
+    n_bins = 2 ** k
+
+    plt.figure(figsize=(8, 7))
+    plt.imshow(matrix, cmap='gist_yarg', origin='lower')
+
+    for i in range(n_bins):
+        for j in range(n_bins):
+            val = matrix[i, j]
+            color = 'white' if val > matrix.max()/2 else 'black'
+
+            plt.text(j, i, labels[i, j],
+                     ha='center', va='center',
+                     color='brown', fontsize=max(4, 14-k))
+
+            plt.text(j, i - 0.3, f"{val:.3f}",
+                     ha='center', va='center',
+                     color=color, fontsize=max(5, 10-k))
+
+    plt.colorbar(label="Fréquence")
+    plt.title(f"{title} — {k}-mers")
+    plt.xticks([])
+    plt.yticks([])
+    plt.tight_layout()
+    plt.show()
+
